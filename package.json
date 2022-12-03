@@ -1,0 +1,31 @@
+{
+  "name": "website-backend",
+  "version": "1.0.0",
+  "description": "CSI Student Branch DDU website backend.",
+  "engines": {
+    "node": ">=14.x"
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/csiddu/website-backend.git"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.17.1",
+    "firebase": "^8.10.0",
+    "firebase-admin": "^10.0.0",
+    "nodemon": "^2.0.20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Deep",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/csiddu/website-backend/issues"
+  },
+  "homepage": "https://github.com/csiddu/website-backend#readme"
+}
