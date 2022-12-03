@@ -1,5 +1,6 @@
 var express = require('express');
 var app = express();
+require("dotenv").config();
 const PORT = process.env.PORT || 3000
 const { events } = require('./handlers/events')
 const { teams } = require('./handlers/teams')
