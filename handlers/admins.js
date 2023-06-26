@@ -1,9 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const { db, storage ,getDownloadURL  } = require("../util/admin");
+const { db, storage } = require("../util/admin");
 const { firebase } = require("../util/firebase");
-const getRawBody = require('raw-body')
-
+require("firebase/storage");
+const storage_ = firebase
+  .app()
+  .storage("gs://website-backend-a17fd.appspot.com");
 
 router.get("/login", (req, res) => {
   res.json({
@@ -32,9 +34,10 @@ router.post("/login", (req, res) => {
 router.post("/addTeam", async (req, res) => {
   var ref = db.collection("AllTeams");
 
-  
-    const req1 = ref.add(req.body).then((i) => {console.log(i.id);res.json({ id: i.id })});
-  
+  const req1 = ref.add(req.body).then((i) => {
+    console.log(i.id);
+    res.json({ id: i.id });
+  });
 
   // res.json("okay");
 });
@@ -155,45 +158,92 @@ router.get("/getTeamMember", async (req, res) => {
 });
 
 router.get("/teamByYear", async (req, res) => {
-
   // fetch should be like : /teamByYear?year={year}
 
-  var ref = db.collection("AllTeams");
+  var refFaculty = db.collection("Faculties");
 
-  
+  var ref = db.collection("AllTeams");
 
   var year = req.query.year;
 
   ref.get().then((snapshot) => {
+
+    // From AllTeams Search the team year wise
     snapshot.docs.forEach((doc) => {
       var team = {};
-      if(doc.data().year == year){
+      if (doc.data().year == year) {
+
         team = {
           id: doc.id,
           ...doc.data(),
         };
-      }
 
-      if(Object.hasOwn(team, "teamMembers")){
-        team.teamMembers.forEach(async (obj)=>{
-          
-          const file = storage.bucket("website-backend-a17fd.appspot.com").file('teams/TeamPhotos/TeamMembers/'+year+'/' +obj.email).getMetadata().then((m)=>
-          {
-          console.log(m)
+        if (!Object.hasOwn(team, "teamMembers")) {
+          team.teamMembers = [];
+        }
 
-          })
-          
-          
-        })
-        
-      }
-      
-      if (!Object.hasOwn(team, "teamMembers")) {
-        team.teamMembers = [];
-      }
-    res.json({ team: team });
+        // Mentor object related to that Team because only ID of mentor is there
+        refFaculty.get().then((snapshot) => {
 
+          snapshot.docs.forEach(async (doc) => {
+            if (doc.id == team.faculty) {
+              let obj = { ...doc.data() };
+
+              //get image of faculty
+              const ref_ = storage_.ref(
+                "teams/TeamPhotos/Faculty/" + obj.email
+              );
+              await ref_.getDownloadURL().then((url) => {
+                obj.imageUrl = url;
+                team.facultyObj = obj;
+
+                var members = [];
+
+                //To get image of team members
+                if (Object.hasOwn(team, "teamMembers")) {
+                  let flg = 0;
+                  let len = team.teamMembers.length;
+                  team.teamMembers.forEach(async (obj) => {
+                    let objTemp = { ...obj };
+                    const ref_ = storage_.ref(
+                      "teams/TeamPhotos/TeamMembers/" + year + "/" + obj.email
+                    );
+                    await ref_.getDownloadURL().then((url) => {
+                      objTemp.url = url;
+                      members.push(objTemp);
+                    });
+                    flg = flg + 1;
+
+                    // After Getting image of all members this will execute
+                    if (len == flg) {
+                      team.members = members;
+                      delete team.teamMembers;
+                      delete team.faculty;
+                      res.json({ team: team });
+                    }
+                  });
+                }
+              });
+            }
+          });
+        });
+      }
     });
+  });
+});
+
+router.get("/getYears", async (req, res) => {
+  var ref = db.collection("AllTeams");
+  var result = [];
+  ref.get().then((snapshot) => {
+    snapshot.docs.forEach((doc) => {
+      var temp_res = {
+        id: doc.id,
+        year: doc.data().year,
+      };
+      result.push(temp_res);
+    });
+    res.json({ allTeam: result });
   });
 });
 
